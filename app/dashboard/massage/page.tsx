@@ -5,7 +5,7 @@ export default function MassagePage() {
     <>
       <Sidebar />
 
-      <main className="ml-64 min-h-screen bg-base">
+      <main className="min-h-screen bg-base pb-20 lg:ml-64 lg:pb-0">
         <header className="sticky top-0 z-40 glass-nav px-8 py-5 flex justify-between items-center">
           <div>
             <h2 className="text-xl font-semibold tracking-tight font-headline">
@@ -21,7 +21,11 @@ export default function MassagePage() {
           <div className="bg-surface border border-default rounded-xl p-8 text-center">
             <h3 className="text-lg font-semibold">Massage Page</h3>
             <p className="mt-3 text-sm text-muted">
-              This page is available at <code className="bg-surface-2 rounded px-1 py-0.5">/dashboard/massage</code>.
+              This page is available at{" "}
+              <code className="bg-surface-2 rounded px-1 py-0.5">
+                /dashboard/massage
+              </code>
+              .
             </p>
           </div>
         </section>

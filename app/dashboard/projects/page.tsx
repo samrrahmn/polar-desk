@@ -10,7 +10,7 @@ export default function ProjectsPage() {
     <>
       <Sidebar />
 
-      <main className="ml-64 min-h-screen bg-base">
+      <main className="min-h-screen bg-base pb-20 lg:ml-64 lg:pb-0">
         <header className="sticky top-0 z-40 glass-nav px-8 py-5 flex justify-between items-center">
           <div>
             <h2 className="text-xl font-semibold tracking-tight font-headline">
