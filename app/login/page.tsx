@@ -1,15 +1,35 @@
-import AuthPageShell from "../../components/AuthPageShell";
+"use client";
 
-export const metadata = {
-  title: "Login",
-};
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import AuthPageShell from "../../components/AuthPageShell";
+import { supabase } from "../../src/lib/supabaseClient";
 
 export default function LoginPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        router.push("/dashboard");
+      }
+    });
+  }, [router]);
+
+  const handleGoogleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+  };
+
   return (
     <AuthPageShell
       title="Welcome Back"
       subtitle="Login to continue your workspace"
-      bottomText="Don’t have an account?"
+      bottomText="Don't have an account?"
       bottomLinkHref="/signup"
       bottomLinkText="Sign up"
     >
@@ -38,6 +58,7 @@ export default function LoginPage() {
 
         <button
           type="button"
+          onClick={handleGoogleLogin}
           className="w-full h-12 flex items-center justify-center gap-3 rounded-lg border border-default bg-surface-2 hover:bg-surface-3 transition cursor-pointer"
         >
           <i className="fa-brands fa-google text-base"></i>

@@ -1,6 +1,9 @@
-import Sidebar from "../../../components/Sidebar";
+"use client";
 
-export default function MassagePage() {
+import Sidebar from "../../../components/Sidebar";
+import AuthGuard from "../../../components/AuthGuard";
+
+function MassageContent() {
   return (
     <>
       <Sidebar />
@@ -31,5 +34,13 @@ export default function MassagePage() {
         </section>
       </main>
     </>
+  );
+}
+
+export default function MassagePage() {
+  return (
+    <AuthGuard>
+      <MassageContent />
+    </AuthGuard>
   );
 }

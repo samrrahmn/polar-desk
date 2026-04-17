@@ -8,6 +8,7 @@ import {
   type DragEvent,
 } from "react";
 import Sidebar from "../../../components/Sidebar";
+import AuthGuard from "../../../components/AuthGuard";
 
 type ProgressItem = {
   id: string;
@@ -220,7 +221,7 @@ function normalizeProject(project: Partial<Project>): Project {
   };
 }
 
-export default function ProjectsPage() {
+function ProjectsContent() {
   const [projects, setProjects] = useState<Project[]>(defaultProjects);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [draftProject, setDraftProject] = useState<Project | null>(null);
@@ -714,5 +715,13 @@ export default function ProjectsPage() {
         ) : null}
       </main>
     </>
+  );
+}
+
+export default function ProjectsPage() {
+  return (
+    <AuthGuard>
+      <ProjectsContent />
+    </AuthGuard>
   );
 }

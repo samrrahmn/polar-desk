@@ -6,6 +6,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.103.3",
     "@tailwindcss/postcss": "^4.2.2",
     "next": "14.2.15",
     "postcss": "^8.4.0",

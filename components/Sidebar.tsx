@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { supabase } from "../src/lib/supabaseClient";
 
 const navItems = [
   {
@@ -18,6 +20,31 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = useState<{
+    fullName: string;
+    email: string;
+    avatarUrl: string;
+  } | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setUser({
+          fullName: user.user_metadata.full_name || "User",
+          email: user.email || "",
+          avatarUrl:
+            user.user_metadata.avatar_url ||
+            `https://www.gravatar.com/avatar/${user.email}?s=250&d=mp`,
+        });
+      }
+    });
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   return (
     <>
@@ -72,16 +99,19 @@ export default function Sidebar() {
           <div className="p-3 bg-surface border border-default rounded-xl flex items-center gap-3">
             <img
               className="w-10 h-10 rounded-full object-cover"
-              src="https://www.gravatar.com/avatar/2c7d99fe281ecd3bcd65ab915bac6dd5?s=250"
+              src={user?.avatarUrl || "https://www.gravatar.com/avatar/?s=250&d=mp"}
               alt="avatar"
             />
             <div className="overflow-hidden">
-              <p className="text-sm font-semibold truncate">Alex Rivera</p>
-              <p className="text-xs text-muted">Free Plan</p>
+              <p className="text-sm font-semibold truncate">
+                {user?.fullName || "Loading..."}
+              </p>
+              <p className="text-xs text-muted truncate">{user?.email || ""}</p>
             </div>
           </div>
 
           <button
+            onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2 text-muted hover:text-[rgb(var(--error))] hover:bg-surface-2 rounded-lg transition-all cursor-pointer"
             type="button"
           >
