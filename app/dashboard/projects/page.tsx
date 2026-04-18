@@ -380,7 +380,6 @@ function ProjectsContent() {
       }
 
       // 2. Replace steps
-      await supabase.from("project_steps").delete().eq("project_id", projectId);
 
       const stepsData = draftProject.progressItems.map((item) => ({
         id: item.id,
@@ -390,15 +389,28 @@ function ProjectsContent() {
         completed_at: item.completedAt || null,
       }));
 
+      // delete removed steps
+      const currentIds = draftProject.progressItems.map((i) => i.id);
+
+      await supabase
+        .from("project_steps")
+        .delete()
+        .eq("project_id", projectId)
+        .not("id", "in", `(${currentIds.join(",")})`);
+
       if (stepsData.length > 0) {
         const { data, error } = await supabase
           .from("project_steps")
-          .insert(stepsData)
+          .upsert(stepsData, { onConflict: "id" })
           .select();
 
-        console.log("STEPS INSERT RESULT:", data, error);
+        console.log("UPSERT STEPS:", data, error);
 
-        if (error) console.error(error);
+        if (error) {
+          console.error(error);
+          alert("Steps update failed");
+          return;
+        }
       }
 
       // 3. Upload files
@@ -438,6 +450,7 @@ function ProjectsContent() {
       // 6. Reset UI
       setUploadedFiles([]);
       setIsModalOpen(false);
+      window.location.reload();
     } catch (err) {
       console.error(err);
       alert("Something went wrong");
@@ -608,8 +621,17 @@ function ProjectsContent() {
                       </button>
 
                       <button
-                        onClick={() => {
-                          const link = `${window.location.origin}/project/${project.id}`;
+                        onClick={async () => {
+                          const { data } = await supabase
+                            .from("magic_links")
+                            .select("token")
+                            .eq("project_id", project.id)
+                            .maybeSingle();
+
+                          const link = data?.token
+                            ? `${window.location.origin}/project/${data.token}`
+                            : `${window.location.origin}/project/${project.id}`;
+
                           navigator.clipboard.writeText(link);
                         }}
                         className="px-3 py-1.5 text-sm text-gray-700 border border-gray-200 rounded-md cursor-pointer hover:bg-gray-100"

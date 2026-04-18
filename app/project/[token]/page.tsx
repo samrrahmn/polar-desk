@@ -4,6 +4,8 @@ export const metadata = {
   title: "Client Portal",
 };
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: { token: string };
 }
@@ -22,6 +24,10 @@ async function getProjectData(token: string) {
     .maybeSingle();
 
   if (magicLink) {
+    console.log("USING MAGIC LINK");
+    console.log("TOKEN:", token);
+    console.log("PROJECT FROM TOKEN:", magicLink.project_id);
+
     projectId = magicLink.project_id;
 
     if (magicLink.expires_at) {
@@ -30,6 +36,9 @@ async function getProjectData(token: string) {
       }
     }
   } else {
+    console.log("USING DIRECT PROJECT ID");
+    console.log("TOKEN (USED AS PROJECT ID):", token);
+
     projectId = token;
   }
 
@@ -46,14 +55,9 @@ async function getProjectData(token: string) {
   if (!project) return null;
 
   const { data: steps } = await supabase
-
     .from("project_steps")
-
     .select("*")
-
-    .eq("project_id", project.id)
-
-    .order("id", { ascending: true });
+    .eq("project_id", project.id);
 
   const { data: files } = await supabase
 
@@ -245,7 +249,7 @@ export default async function ClientPortalPage({ params }: PageProps) {
                 <div>
                   <h3 className="text-sm font-bold">Julian Marcus</h3>
                   <p className="text-[10px] text-muted uppercase tracking-wider font-semibold">
-                    Freelancer
+                    Online
                   </p>
                 </div>
               </div>
