@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-  type ChangeEvent,
-  type DragEvent,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 import Sidebar from "../../../components/Sidebar";
 import AuthGuard from "../../../components/AuthGuard";
 import { supabase } from "../../../src/lib/supabaseClient";
@@ -58,7 +52,7 @@ function buildEmptyProject(): Project {
     clientEmail: "",
     deadline: "",
     status: "In Progress",
-    progressItems: [createProgressItem("Project Setup")],
+    progressItems: [createProgressItem("")],
     progressPercent: 0,
     files: [],
   };
@@ -72,9 +66,7 @@ function normalizeProject(project: Partial<Project>): Project {
     clientEmail: project.clientEmail ?? "",
     deadline: project.deadline ?? "",
     status: project.status ?? "In Progress",
-    progressItems: project.progressItems ?? [
-      createProgressItem("Discovery & Brand Strategy"),
-    ],
+    progressItems: project.progressItems ?? [createProgressItem("")],
     progressPercent: project.progressPercent ?? 0,
     files: project.files ?? [],
   };
@@ -480,7 +472,6 @@ function ProjectsContent() {
         alert("Project save failed");
         return;
       }
-      console.log("[SAVE] Project saved successfully:", projectId);
 
       // 2. Replace steps - delete all then insert
       const stepsData = draftProject.progressItems.map((item) => ({
@@ -514,7 +505,6 @@ function ProjectsContent() {
           alert("Failed to save steps");
           return;
         }
-        console.log("[SAVE] Steps saved:", stepsData.length, "steps");
       }
 
       // 3. Create magic link for new projects
@@ -537,7 +527,6 @@ function ProjectsContent() {
       setUploadedFiles([]);
       setDraftProject(null);
       setIsModalOpen(false);
-      console.log("[SAVE] Project save completed successfully");
     } catch (err) {
       console.error("[SAVE] Unexpected error:", err);
       alert("Something went wrong");
@@ -619,7 +608,6 @@ function ProjectsContent() {
         await supabase.from("magic_links").delete().eq("project_id", id);
         await supabase.from("projects").delete().eq("id", id);
 
-        console.log("[DELETE] Project and all related data deleted:", id);
         setProjects((prev) => prev.filter((p) => p.id !== id));
         setDeletingId(null);
       } catch (err) {

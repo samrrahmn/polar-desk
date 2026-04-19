@@ -17,7 +17,6 @@ interface PageProps {
 }
 
 async function getProjectData(token: string) {
-  console.log("[PORTAL] Fetching data for token:", token);
   let projectId: string | null = null;
 
   // Check magic_links first
@@ -33,7 +32,6 @@ async function getProjectData(token: string) {
     // Check if link expired
     if (magicLink.expires_at) {
       if (new Date(magicLink.expires_at).getTime() < Date.now()) {
-        console.log("[PORTAL] Magic link expired");
         return null;
       }
     }
@@ -43,7 +41,6 @@ async function getProjectData(token: string) {
   }
 
   if (!projectId) {
-    console.log("[PORTAL] No project ID found");
     return null;
   }
 
@@ -55,7 +52,6 @@ async function getProjectData(token: string) {
     .maybeSingle();
 
   if (!project) {
-    console.log("[PORTAL] Project not found in database:", projectId);
     return null;
   }
 
@@ -106,16 +102,19 @@ export default async function ClientPortalPage({ params }: PageProps) {
 
   if (!data) {
     return (
-      <main className="pt-24 pb-12 px-6 max-w-7xl mx-auto min-h-screen">
-        <div className="text-center py-20">
-          <h1 className="text-2xl font-bold mb-4">Invalid Link</h1>
+      <main className="pt-24 pb-12 px-6 max-w-7xl mx-auto min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+            Link not available
+          </h1>
 
-          <p className="text-muted">This project is not available.</p>
+          <p className="text-sm text-muted">
+            This project link has expired or is no longer valid.
+          </p>
         </div>
       </main>
     );
   }
-
   const { steps, files } = data;
 
   const completed = steps.filter((s) => !!s.completed_at);
@@ -224,24 +223,44 @@ export default async function ClientPortalPage({ params }: PageProps) {
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
-              {files.map((file) => (
-                <a
-                  key={file.id}
-                  href={file.file_url}
-                  target="_blank"
-                  download
-                  rel="noopener noreferrer"
-                  className="flex justify-between items-center p-4 rounded-lg bg-surface hover:bg-surface-2 transition cursor-pointer border border-default"
-                >
-                  <span className="text-sm font-semibold">
-                    {file.file_name}
-                  </span>
+              {files.length === 0 ? (
+                <div className="col-span-2 flex items-center justify-center py-5 text-center">
+                  <div className="flex flex-col items-center">
+                    <span className="material-symbols-outlined text-2xl text-muted mb-2">
+                      folder_open
+                    </span>
 
-                  <span className="material-symbols-outlined text-muted">
-                    download
-                  </span>
-                </a>
-              ))}
+                    <p className="text-sm font-medium text-gray-800">
+                      No files yet
+                    </p>
+
+                    <p className="text-xs text-muted pt-1">
+                      Files will appear here once shared.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {files.map((file) => (
+                    <a
+                      key={file.id}
+                      href={file.file_url}
+                      target="_blank"
+                      download
+                      rel="noopener noreferrer"
+                      className="flex justify-between items-center p-4 rounded-lg bg-surface hover:bg-surface-2 transition border border-default"
+                    >
+                      <span className="text-sm font-semibold">
+                        {file.file_name}
+                      </span>
+
+                      <span className="material-symbols-outlined text-muted">
+                        download
+                      </span>
+                    </a>
+                  ))}
+                </>
+              )}
             </div>
           </section>
         </div>
