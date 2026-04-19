@@ -58,7 +58,7 @@ function buildEmptyProject(): Project {
     clientEmail: "",
     deadline: "",
     status: "In Progress",
-    progressItems: [createProgressItem("Discovery & Brand Strategy")],
+    progressItems: [createProgressItem("Project Setup")],
     progressPercent: 0,
     files: [],
   };
@@ -119,12 +119,14 @@ function ProjectsContent() {
         const { data: steps } = await supabase
           .from("project_steps")
           .select("*")
-          .eq("project_id", project.id);
+          .eq("project_id", project.id)
+          .order("created_at", { ascending: true });
 
         const { data: files } = await supabase
           .from("project_files")
           .select("*")
-          .eq("project_id", project.id);
+          .eq("project_id", project.id)
+          .order("created_at", { ascending: false });
 
         const progressItems: ProgressItem[] = (steps || []).map((step) => ({
           id: step.id,
@@ -170,7 +172,40 @@ function ProjectsContent() {
   }, []);
 
   const openProject = async (project: Project) => {
-    setDraftProject(normalizeProject(project));
+    // fetch fresh data from DB
+    const { data: steps } = await supabase
+      .from("project_steps")
+      .select("*")
+      .eq("project_id", project.id)
+      .order("id", { ascending: true });
+
+    const { data: files } = await supabase
+      .from("project_files")
+      .select("*")
+      .eq("project_id", project.id)
+      .order("id", { ascending: true });
+
+    const progressItems = (steps || []).map((step) => ({
+      id: step.id,
+      name: step.name,
+      expectedDate: step.expected_date || "",
+      completedAt: step.completed_at || "",
+    }));
+
+    const projectFiles = (files || []).map((file) => ({
+      id: file.id,
+      file_url: file.file_url,
+      file_name: file.file_name,
+    }));
+
+    setDraftProject(
+      normalizeProject({
+        ...project,
+        progressItems,
+        files: projectFiles,
+      }),
+    );
+
     setUploadedFiles([]);
     setMagicLink(null);
     setIsModalOpen(true);
@@ -343,6 +378,73 @@ function ProjectsContent() {
     return total === 0 ? 0 : Math.round((complete / total) * 100);
   }, [draftProject]);
 
+  const refetchProjects = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { data: projectsData, error } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("user_id", session.user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error refetching projects:", error);
+      return;
+    }
+
+    const projectsWithDetails: Project[] = [];
+
+    for (const project of projectsData || []) {
+      const { data: steps } = await supabase
+        .from("project_steps")
+        .select("*")
+        .eq("project_id", project.id)
+        .order("created_at", { ascending: true });
+
+      const { data: files } = await supabase
+        .from("project_files")
+        .select("*")
+        .eq("project_id", project.id)
+        .order("created_at", { ascending: false });
+
+      const progressItems: ProgressItem[] = (steps || []).map((step) => ({
+        id: step.id,
+        name: step.name,
+        expectedDate: step.expected_date || "",
+        completedAt: step.completed_at || "",
+      }));
+
+      const projectFiles: ProjectFile[] = (files || []).map((file) => ({
+        id: file.id,
+        file_url: file.file_url,
+        file_name: file.file_name,
+      }));
+
+      const totalSteps = progressItems.length;
+      const completedSteps = progressItems.filter((s) => s.completedAt).length;
+      const progressPercent =
+        totalSteps === 0 ? 0 : Math.round((completedSteps / totalSteps) * 100);
+
+      projectsWithDetails.push({
+        id: project.id,
+        name: project.name,
+        clientName: project.client_name,
+        clientEmail: project.client_email,
+        deadline: project.deadline,
+        status: project.status,
+        progressItems,
+        progressPercent,
+        files: projectFiles,
+        user_id: project.user_id,
+      });
+    }
+
+    setProjects(projectsWithDetails);
+  };
+
   const saveProject = async () => {
     const {
       data: { session },
@@ -374,13 +476,13 @@ function ProjectsContent() {
       );
 
       if (projectError) {
-        console.error(projectError);
+        console.error("[SAVE] Project save error:", projectError);
         alert("Project save failed");
         return;
       }
+      console.log("[SAVE] Project saved successfully:", projectId);
 
-      // 2. Replace steps
-
+      // 2. Replace steps - delete all then insert
       const stepsData = draftProject.progressItems.map((item) => ({
         id: item.id,
         project_id: projectId,
@@ -389,53 +491,35 @@ function ProjectsContent() {
         completed_at: item.completedAt || null,
       }));
 
-      // delete removed steps
-      const currentIds = draftProject.progressItems.map((i) => i.id);
-
-      await supabase
+      // Delete all existing steps for this project
+      const { error: deleteError } = await supabase
         .from("project_steps")
         .delete()
-        .eq("project_id", projectId)
-        .not("id", "in", `(${currentIds.join(",")})`);
+        .eq("project_id", projectId);
 
-      if (stepsData.length > 0) {
-        const { data, error } = await supabase
-          .from("project_steps")
-          .upsert(stepsData, { onConflict: "id" })
-          .select();
-
-        console.log("UPSERT STEPS:", data, error);
-
-        if (error) {
-          console.error(error);
-          alert("Steps update failed");
-          return;
-        }
+      if (deleteError) {
+        console.error("[SAVE] Error deleting old steps:", deleteError);
+        alert("Failed to clear old steps");
+        return;
       }
 
-      // 3. Upload files
-      const uploadedFileRecords: ProjectFile[] = [];
+      // Insert all current steps as new records
+      if (stepsData.length > 0) {
+        const { error: insertError } = await supabase
+          .from("project_steps")
+          .insert(stepsData);
 
-      // 4. Update UI instantly
-      const updatedProject: Project = {
-        ...draftProject,
-        id: projectId,
-        progressPercent: draftProgressPercent,
-        files: [...draftProject.files, ...uploadedFileRecords],
-      };
-
-      setProjects((prev) => {
-        const exists = prev.find((p) => p.id === projectId);
-        if (exists) {
-          return prev.map((p) => (p.id === projectId ? updatedProject : p));
+        if (insertError) {
+          console.error("[SAVE] Error inserting steps:", insertError);
+          alert("Failed to save steps");
+          return;
         }
-        return [updatedProject, ...prev];
-      });
+        console.log("[SAVE] Steps saved:", stepsData.length, "steps");
+      }
 
-      // 5. Magic link
+      // 3. Create magic link for new projects
       if (isNewProject) {
         const token = crypto.randomUUID();
-
         await supabase.from("magic_links").insert({
           project_id: projectId,
           token,
@@ -443,16 +527,19 @@ function ProjectsContent() {
             Date.now() + 30 * 24 * 60 * 60 * 1000,
           ).toISOString(),
         });
-
         setMagicLink(`${window.location.origin}/project/${token}`);
       }
 
-      // 6. Reset UI
+      // 4. Refetch all projects to ensure fresh data
+      await refetchProjects();
+
+      // 5. Reset UI
       setUploadedFiles([]);
+      setDraftProject(null);
       setIsModalOpen(false);
-      window.location.reload();
+      console.log("[SAVE] Project save completed successfully");
     } catch (err) {
-      console.error(err);
+      console.error("[SAVE] Unexpected error:", err);
       alert("Something went wrong");
     }
   };
@@ -498,13 +585,48 @@ function ProjectsContent() {
     const timer = setTimeout(async () => {
       clearInterval(interval);
 
-      await supabase.from("project_files").delete().eq("project_id", id);
-      await supabase.from("project_steps").delete().eq("project_id", id);
-      await supabase.from("magic_links").delete().eq("project_id", id);
-      await supabase.from("projects").delete().eq("id", id);
+      try {
+        // Get all files for this project first (to delete from storage)
+        const { data: files } = await supabase
+          .from("project_files")
+          .select("file_url")
+          .eq("project_id", id);
 
-      setProjects((prev) => prev.filter((p) => p.id !== id));
-      setDeletingId(null);
+        // Delete files from storage if they exist
+        if (files && files.length > 0) {
+          const filePaths = files
+            .map((f) => {
+              // Extract path from URL
+              const url = new URL(f.file_url);
+              const pathMatch = url.pathname.match(/project-files\/(.+)/);
+              return pathMatch ? pathMatch[1] : null;
+            })
+            .filter(Boolean) as string[];
+
+          if (filePaths.length > 0) {
+            const { error: storageError } = await supabase.storage
+              .from("project-files")
+              .remove(filePaths);
+            if (storageError) {
+              console.error("[DELETE] Storage delete error:", storageError);
+            }
+          }
+        }
+
+        // Delete all related data in correct order
+        await supabase.from("project_files").delete().eq("project_id", id);
+        await supabase.from("project_steps").delete().eq("project_id", id);
+        await supabase.from("magic_links").delete().eq("project_id", id);
+        await supabase.from("projects").delete().eq("id", id);
+
+        console.log("[DELETE] Project and all related data deleted:", id);
+        setProjects((prev) => prev.filter((p) => p.id !== id));
+        setDeletingId(null);
+      } catch (err) {
+        console.error("[DELETE] Error deleting project:", err);
+        alert("Failed to delete project");
+        setDeletingId(null);
+      }
     }, 3000);
 
     setDeleteTimer(timer);

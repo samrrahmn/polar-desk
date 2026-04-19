@@ -1,77 +1,90 @@
-import { supabase } from "../../../src/lib/supabaseClient";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+);
 
 export const metadata = {
   title: "Client Portal",
 };
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 interface PageProps {
   params: { token: string };
 }
 
 async function getProjectData(token: string) {
+  console.log("[PORTAL] Fetching data for token:", token);
   let projectId: string | null = null;
 
+  // Check magic_links first
   const { data: magicLink } = await supabase
-
     .from("magic_links")
-
-    .select("*")
-
+    .select("project_id, expires_at")
     .eq("token", token)
-
     .maybeSingle();
 
   if (magicLink) {
-    console.log("USING MAGIC LINK");
-    console.log("TOKEN:", token);
-    console.log("PROJECT FROM TOKEN:", magicLink.project_id);
-
     projectId = magicLink.project_id;
 
+    // Check if link expired
     if (magicLink.expires_at) {
       if (new Date(magicLink.expires_at).getTime() < Date.now()) {
+        console.log("[PORTAL] Magic link expired");
         return null;
       }
     }
   } else {
-    console.log("USING DIRECT PROJECT ID");
-    console.log("TOKEN (USED AS PROJECT ID):", token);
-
+    // Use token directly as project ID
     projectId = token;
   }
 
+  if (!projectId) {
+    console.log("[PORTAL] No project ID found");
+    return null;
+  }
+
+  // Fetch project
   const { data: project } = await supabase
-
     .from("projects")
-
     .select("*")
-
     .eq("id", projectId)
-
     .maybeSingle();
 
-  if (!project) return null;
+  if (!project) {
+    console.log("[PORTAL] Project not found in database:", projectId);
+    return null;
+  }
 
-  const { data: steps } = await supabase
-    .from("project_steps")
-    .select("*")
-    .eq("project_id", project.id);
+  // Fetch steps and files in parallel
+  const [{ data: steps }, { data: files }] = await Promise.all([
+    supabase
+      .from("project_steps")
+      .select("*")
+      .eq("project_id", project.id)
+      .order("id", { ascending: true }),
+    supabase
+      .from("project_files")
+      .select("*")
+      .eq("project_id", project.id)
+      .order("id", { ascending: true }),
+  ]);
 
-  const { data: files } = await supabase
-
-    .from("project_files")
-
-    .select("*")
-
-    .eq("project_id", project.id);
+  console.log(
+    "[PORTAL] Loaded project:",
+    project.name,
+    "steps:",
+    steps?.length || 0,
+    "files:",
+    files?.length || 0,
+  );
 
   return {
     project,
-
     steps: steps || [],
-
     files: files || [],
   };
 }
