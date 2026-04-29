@@ -5,16 +5,23 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "../src/lib/supabaseClient";
 
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faLayerGroup,
+  faInbox,
+  faArrowRightFromBracket,
+} from "@fortawesome/free-solid-svg-icons";
+
 const navItems = [
   {
     href: "/dashboard/projects",
     label: "Projects",
-    icon: "assignment",
+    icon: faLayerGroup,
   },
   {
     href: "/dashboard/massage",
     label: "Massage",
-    icon: "mail",
+    icon: faInbox,
   },
 ];
 
@@ -80,14 +87,12 @@ export default function Sidebar() {
                       : "text-muted hover:bg-surface-2"
                   }`}
                 >
-                  <span
-                    className="material-symbols-outlined"
-                    style={{
-                      fontVariationSettings: isActive ? '"FILL" 1' : '"FILL" 0',
-                    }}
-                  >
-                    {item.icon}
-                  </span>
+                  <FontAwesomeIcon
+                    icon={item.icon}
+                    className={`text-[18px] ${
+                      isActive ? "text-black" : "text-muted"
+                    }`}
+                  />
                   <span className="text-sm tracking-tight">{item.label}</span>
                 </Link>
               );
@@ -99,8 +104,7 @@ export default function Sidebar() {
           <div className="p-3 bg-surface border border-default rounded-xl flex items-center gap-3">
             <img
               className="w-10 h-10 rounded-full object-cover"
-              src={user?.avatarUrl || "https://www.gravatar.com/avatar/?s=250&d=mp"}
-              alt="avatar"
+              src="/default-profile.jpg"
             />
             <div className="overflow-hidden">
               <p className="text-sm font-semibold truncate">
@@ -115,7 +119,10 @@ export default function Sidebar() {
             className="w-full flex items-center gap-3 px-3 py-2 text-muted hover:text-[rgb(var(--error))] hover:bg-surface-2 rounded-lg transition-all cursor-pointer"
             type="button"
           >
-            <span className="material-symbols-outlined">logout</span>
+            <FontAwesomeIcon
+              icon={faArrowRightFromBracket}
+              className="text-[18px]"
+            />
             <span className="text-sm tracking-tight">Sign Out</span>
           </button>
         </div>
@@ -135,14 +142,7 @@ export default function Sidebar() {
                 isActive ? "text-primary" : "text-muted hover:bg-surface-2"
               }`}
             >
-              <span
-                className="material-symbols-outlined text-lg"
-                style={{
-                  fontVariationSettings: isActive ? '"FILL" 1' : '"FILL" 0',
-                }}
-              >
-                {item.icon}
-              </span>
+              <FontAwesomeIcon icon={item.icon} className="text-[20px]" />
               <span className="text-[11px] tracking-tight">{item.label}</span>
             </Link>
           );

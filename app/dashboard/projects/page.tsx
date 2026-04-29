@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Sidebar from "../../../components/Sidebar";
 import AuthGuard from "../../../components/AuthGuard";
 import { supabase } from "../../../src/lib/supabaseClient";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFolderOpen, faPlus } from "@fortawesome/free-solid-svg-icons";
 
 type ProgressItem = {
   id: string;
@@ -649,9 +651,9 @@ function ProjectsContent() {
           <button
             type="button"
             onClick={openNewProject}
-            className="bg-[#3525CD] text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-95 active:scale-[0.98] transition-all"
+            className="bg-[#3525CD] text-white px-4 py-3 cursor-pointer rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-95 active:scale-[0.98] transition-all"
           >
-            <span className="material-symbols-outlined text-[18px]">add</span>
+            <FontAwesomeIcon icon={faPlus} className="text-[18px]" />
             New Project
           </button>
         </header>
@@ -690,9 +692,10 @@ function ProjectsContent() {
                     <div className="md:col-span-4 flex items-center gap-3">
                       {/* icon box */}
                       <div className="w-9 h-9 flex items-center justify-center rounded-md border border-gray-200 bg-gray-50">
-                        <span className="material-symbols-outlined text-[18px] text-gray-600">
-                          folder
-                        </span>
+                        <FontAwesomeIcon
+                          icon={faFolderOpen}
+                          className="text-[16px] text-gray-600"
+                        />
                       </div>
 
                       {/* text */}

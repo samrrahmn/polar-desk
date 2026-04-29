@@ -1,13 +1,34 @@
 import { createClient } from "@supabase/supabase-js";
 
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import DownloadButton from "../../../components/DownloadButton";
+import {
+  faCheckCircle,
+  faFolderOpen,
+  faEllipsisVertical,
+  faPaperclip,
+  faFaceSmile,
+  faArrowUp,
+} from "@fortawesome/free-solid-svg-icons";
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 );
 
-export const metadata = {
-  title: "Client Portal",
-};
+export async function generateMetadata({ params }: PageProps) {
+  const data = await getProjectData(params.token);
+
+  if (!data) {
+    return {
+      title: "Project Not Found",
+    };
+  }
+
+  return {
+    title: data.project.name,
+  };
+}
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -126,34 +147,33 @@ export default async function ClientPortalPage({ params }: PageProps) {
   const firstIncompleteIndex = steps.findIndex((s) => !s.completed_at);
 
   return (
-    <main className="pt-24 pb-12 px-6 max-w-7xl mx-auto min-h-screen">
-      <div className="grid grid-cols-12 gap-8">
-        <div className="col-span-12 lg:col-span-8 flex flex-col gap-8">
-          <section className="bg-surface rounded-xl p-8 border border-default">
-            <div className="flex justify-between items-end mb-8">
+    <main className="pt-24 pb-12 px-4 md:px-6 max-w-7xl mx-auto min-h-screen overflow-x-hidden">
+      <div className="grid grid-cols-12 gap-4 md:gap-8">
+        <div className="col-span-12 lg:col-span-8 flex flex-col gap-4 md:gap-8">
+          <section className="bg-surface rounded-xl p-5 md:p-8 border border-default">
+            <div className="flex justify-between items-end mb-6 md:mb-8">
               <div>
-                <h2 className="text-2xl font-extrabold tracking-tight">
+                <h2 className="text-xl md:text-2xl font-extrabold tracking-tight">
                   Project Progress
                 </h2>
               </div>
 
-              <span className="text-4xl font-black tracking-tighter">
+              <span className="text-3xl md:text-4xl font-black tracking-tighter">
                 {progress}%
               </span>
             </div>
 
-            <div className="w-full h-3 bg-surface-2 rounded-full overflow-hidden mb-12">
+            <div className="w-full h-3 bg-surface-2 rounded-full overflow-hidden mb-8 md:mb-12">
               <div
                 className="h-full rounded-full"
                 style={{
                   width: `${progress}%`,
-
                   background: "var(--gradient-primary)",
                 }}
               ></div>
             </div>
 
-            <div className="space-y-6 divide-y divide-[rgb(var(--border))]/20">
+            <div className="space-y-4 md:space-y-6 divide-y divide-[rgb(var(--border))]/20">
               {steps.map((step, index) => {
                 const isCompleted = !!step.completed_at;
 
@@ -180,19 +200,19 @@ export default async function ClientPortalPage({ params }: PageProps) {
                       }`}
                     >
                       {isCompleted ? (
-                        <span
-                          className="material-symbols-outlined text-sm"
-                          style={{ fontVariationSettings: '"FILL" 1' }}
-                        >
-                          check_circle
-                        </span>
+                        <FontAwesomeIcon
+                          icon={faCheckCircle}
+                          className="text-[24px]"
+                        />
                       ) : isInProgress ? (
                         <span className="w-2 h-2 rounded-full bg-primary"></span>
                       ) : null}
                     </div>
 
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-sm">{step.name}</h3>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm truncate">
+                        {step.name}
+                      </h3>
 
                       <p className="text-xs text-muted mt-1">
                         {isCompleted && step.completed_at
@@ -208,9 +228,9 @@ export default async function ClientPortalPage({ params }: PageProps) {
             </div>
           </section>
 
-          <section className="bg-surface rounded-xl p-8 border border-default">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-xl font-extrabold tracking-tight">
+          <section className="bg-surface rounded-xl p-5 md:p-8 border border-default">
+            <div className="flex justify-between items-center mb-6 md:mb-8">
+              <h2 className="text-lg md:text-xl font-extrabold tracking-tight">
                 Shared Files
               </h2>
 
@@ -222,13 +242,15 @@ export default async function ClientPortalPage({ params }: PageProps) {
               </button>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {files.length === 0 ? (
                 <div className="col-span-2 flex items-center justify-center py-5 text-center">
                   <div className="flex flex-col items-center">
-                    <span className="material-symbols-outlined text-2xl text-muted mb-2">
-                      folder_open
-                    </span>
+                    <FontAwesomeIcon
+                      icon={faFolderOpen}
+                      style={{ width: "20px", height: "auto" }}
+                      className="text-muted mb-2"
+                    />
 
                     <p className="text-sm font-medium text-gray-800">
                       No files yet
@@ -242,28 +264,19 @@ export default async function ClientPortalPage({ params }: PageProps) {
               ) : (
                 <>
                   {files.map((file) => (
-                    <a
+                    <DownloadButton
                       key={file.id}
-                      href={file.file_url}
-                      target="_blank"
-                      download
-                      rel="noopener noreferrer"
-                      className="flex justify-between items-center p-4 rounded-lg bg-surface hover:bg-surface-2 transition border border-default"
-                    >
-                      <span className="text-sm font-semibold">
-                        {file.file_name}
-                      </span>
-
-                      <span className="material-symbols-outlined text-muted">
-                        download
-                      </span>
-                    </a>
+                      url={file.file_url}
+                      name={file.file_name}
+                    />
                   ))}
                 </>
               )}
             </div>
           </section>
         </div>
+
+        {/* chat section */}
 
         <div className="col-span-12 lg:col-span-4 sticky top-24 h-[calc(100vh-160px)]">
           <section className="bg-surface rounded-xl flex flex-col h-full border border-default shadow-sm overflow-hidden">
@@ -286,9 +299,11 @@ export default async function ClientPortalPage({ params }: PageProps) {
                 </div>
               </div>
 
-              <span className="material-symbols-outlined text-muted hover:text-primary cursor-pointer">
-                more_vert
-              </span>
+              <FontAwesomeIcon
+                icon={faEllipsisVertical}
+                style={{ width: "14px", height: "14px" }}
+                className="text-muted hover:text-primary cursor-pointer"
+              />
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
@@ -354,23 +369,28 @@ export default async function ClientPortalPage({ params }: PageProps) {
                   type="button"
                   className="absolute right-3 inset-y-0 flex items-center justify-center cursor-pointer"
                 >
-                  <span
-                    className="material-symbols-outlined text-sm text-primary"
-                    style={{ fontVariationSettings: '"FILL" 1' }}
-                  >
-                    send
-                  </span>
+                  <div className="w-9 h-9 rounded-full bg-[#3525CD] flex items-center justify-center cursor-pointer hover:opacity-90">
+                    <FontAwesomeIcon
+                      icon={faArrowUp}
+                      style={{ width: "14px", height: "14px" }}
+                      className="text-white"
+                    />
+                  </div>
                 </button>
               </div>
 
               <div className="flex justify-between items-center mt-3 px-1">
                 <div className="flex gap-3">
-                  <span className="material-symbols-outlined text-muted hover:text-primary cursor-pointer">
-                    attach_file
-                  </span>
-                  <span className="material-symbols-outlined text-muted hover:text-primary cursor-pointer">
-                    mood
-                  </span>
+                  <FontAwesomeIcon
+                    icon={faPaperclip}
+                    style={{ width: "15px", height: "15px" }}
+                    className="text-muted hover:text-primary cursor-pointer"
+                  />
+                  <FontAwesomeIcon
+                    icon={faFaceSmile}
+                    style={{ width: "15px", height: "15px" }}
+                    className="text-muted hover:text-primary cursor-pointer"
+                  />
                 </div>
 
                 <span className="text-[10px] text-muted">
