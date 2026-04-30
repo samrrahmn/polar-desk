@@ -212,7 +212,6 @@ function ProjectsContent() {
     );
 
     setUploadedFiles([]);
-    setMagicLink(null);
     setIsModalOpen(true);
   };
 
@@ -530,7 +529,6 @@ function ProjectsContent() {
             Date.now() + 30 * 24 * 60 * 60 * 1000,
           ).toISOString(),
         });
-        setMagicLink(`${window.location.origin}/project/${token}`);
       }
 
       // 4. Refetch all projects to ensure fresh data
@@ -1029,28 +1027,6 @@ function ProjectsContent() {
                         </div>
                       )}
                     </div>
-
-                    {magicLink && (
-                      <div className="rounded-xl border border-[#3525CD]/30 bg-[#3525CD]/5 p-4">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs text-muted mb-1">
-                              Project Link:
-                            </p>
-                            <p className="text-sm truncate text-[#3525CD]">
-                              {magicLink}
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={copyMagicLink}
-                            className="shrink-0 bg-[#3525CD] text-white px-3 py-1.5 rounded-md text-xs font-medium hover:opacity-95"
-                          >
-                            Copy
-                          </button>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div className="p-5 border-t border-default flex flex-col gap-3 md:flex-row justify-end sticky bottom-0 bg-surface z-20 rounded-b-xl">
