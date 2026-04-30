@@ -94,6 +94,10 @@ function ProjectsContent() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteTimer, setDeleteTimer] = useState<NodeJS.Timeout | null>(null);
   const [countdown, setCountdown] = useState(3);
+  const [recentlyDeleted, setRecentlyDeleted] = useState<Project | null>(null);
+  const [deleteInterval, setDeleteInterval] = useState<NodeJS.Timeout | null>(
+    null,
+  );
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -576,9 +580,17 @@ function ProjectsContent() {
     setDeletingId(id);
     setCountdown(3);
 
+    const projectToDelete = projects.find((p) => p.id === id);
+    if (!projectToDelete) return;
+
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+    setRecentlyDeleted(projectToDelete);
+
     const interval = setInterval(() => {
       setCountdown((prev) => prev - 1);
     }, 1000);
+
+    setDeleteInterval(interval);
 
     const timer = setTimeout(async () => {
       clearInterval(interval);
@@ -1072,6 +1084,14 @@ function ProjectsContent() {
             <button
               onClick={() => {
                 if (deleteTimer) clearTimeout(deleteTimer);
+                if (deleteInterval) clearInterval(deleteInterval);
+
+                // project back
+                if (recentlyDeleted) {
+                  setProjects((prev) => [recentlyDeleted, ...prev]);
+                }
+
+                setRecentlyDeleted(null);
                 setDeletingId(null);
               }}
               className="text-[12px] md:text-sm font-medium text-blue-600"
